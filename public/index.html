@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoltEdge — Electric Bikes, E-Cycles &amp; Batteries</title>
+  <meta name="description" content="Shop electric bikes, e-cycles, geared cycles and EV batteries. Book a free test ride and get home delivery from your nearest VoltEdge store." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css?v=1" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#" id="brandHome">
+        <span class="brand-mark">⚡</span>
+        <span class="brand-text">Volt<strong>Edge</strong></span>
+      </a>
+      <nav class="top-nav" id="topNav">
+        <button class="nav-link is-active" data-view="shop">Shop</button>
+        <button class="nav-link" data-view="orders">My Orders</button>
+      </nav>
+      <div class="header-actions">
+        <button class="ghost-btn" id="nearStoreBtn" title="Find nearest store">📍 Nearest store</button>
+        <button class="ghost-btn icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+      </div>
+    </div>
+    <div class="store-strip" id="storeStrip" hidden>
+      <div class="wrap" id="storeStripText"></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- SHOP VIEW -->
+    <section class="view" data-view-panel="shop">
+      <div class="hero">
+        <div class="hero-copy">
+          <h1>Ride electric. <span class="hl">Ride VoltEdge.</span></h1>
+          <p>Electric bikes, e-cycles, geared cycles and certified EV batteries — with free test rides and same-week home delivery across Hyderabad.</p>
+          <div class="hero-cta">
+            <button class="primary-btn" id="heroShopBtn">Explore range</button>
+            <span class="hero-note">🔋 AIS-156 certified batteries · 🛠️ 3-year warranty</span>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">🏍️🚲🔋</div>
+      </div>
+
+      <div class="controls">
+        <div class="cat-chips" id="catChips"></div>
+        <div class="control-row">
+          <input type="search" id="searchInput" class="search" placeholder="Search bikes, cycles, batteries…" />
+          <select id="sortSelect" class="sort">
+            <option value="popular">Most popular</option>
+            <option value="price-low">Price: low to high</option>
+            <option value="price-high">Price: high to low</option>
+            <option value="rating">Top rated</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="result-meta" id="resultMeta"></div>
+      <div class="product-grid" id="productGrid"></div>
+    </section>
+
+    <!-- ORDERS VIEW -->
+    <section class="view" data-view-panel="orders" hidden>
+      <h2 class="section-title">My orders &amp; bookings</h2>
+      <p class="muted">Enter the phone number you used at checkout to see your orders and test-ride bookings.</p>
+      <form class="lookup-form" id="lookupForm">
+        <input type="tel" id="lookupPhone" placeholder="Phone number" required />
+        <button class="primary-btn" type="submit">Find orders</button>
+      </form>
+      <div class="order-list" id="orderList"></div>
+    </section>
+  </main>
+
+  <!-- PRODUCT MODAL -->
+  <div class="modal" id="productModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close aria-label="Close">✕</button>
+      <div class="modal-body" id="productModalBody"></div>
+    </div>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div class="modal" id="checkoutModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close aria-label="Close">✕</button>
+      <div class="modal-body" id="checkoutBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>VoltEdge — demo store. Orders and payments are simulated for showcase purposes.</p>
+    </div>
+  </footer>
+
+  <script src="app.js?v=1"></script>
+</body>
+</html>
