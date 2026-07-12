@@ -1,0 +1,24 @@
+# Render Blueprint for VoltEdge EV Store
+services:
+  - type: web
+    name: voltedge
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node backend/server.js
+    envVars:
+      - key: ADMIN_SECRET
+        generateValue: true
+      # Durable order storage (optional). To enable, create a free Render
+      # PostgreSQL DB and add its Internal URL as DATABASE_URL (dashboard or below).
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: voltedge-db
+      #     property: connectionString
+      # - key: WEBSITE_URL
+
+# databases:
+#   - name: voltedge-db
+#     plan: free
+#     databaseName: voltedge
+#     user: voltedge
