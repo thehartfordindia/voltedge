@@ -12,7 +12,7 @@ const state = {
   view: "shop",
   categories: [],
   products: [],
-  filters: { category: "all", q: "", sort: "popular" },
+  filters: { category: "all", q: "", sort: "popular", brand: "", minPrice: 0, maxPrice: 0, minRating: 0 },
   selected: null,
   selectedColor: "",
   geo: null,
@@ -188,15 +188,33 @@ async function loadCategories() {
 }
 
 async function loadProducts() {
-  const { category, q, sort } = state.filters;
+  const { category, q, sort, brand, minPrice, maxPrice, minRating } = state.filters;
   const params = new URLSearchParams({ category, sort });
   if (q) params.set("q", q);
+  if (brand) params.set("brand", brand);
+  if (minPrice) params.set("minPrice", minPrice);
+  if (maxPrice) params.set("maxPrice", maxPrice);
+  if (minRating) params.set("minRating", minRating);
   const { products, count } = await api("/api/products?" + params.toString());
   state.products = products;
+  populateBrandFilter(products);
   $("#resultMeta").textContent = count
     ? `${count} ${count === 1 ? "product" : "products"} available`
     : "";
   renderProducts(products);
+}
+
+function populateBrandFilter(products) {
+  const sel = $("#brandFilter");
+  if (!sel) return;
+  // Build the master brand list once (from an unfiltered load), then keep it.
+  const noFilters = !state.filters.brand && !state.filters.minPrice && !state.filters.maxPrice && !state.filters.minRating && state.filters.category === "all" && !state.filters.q;
+  if (sel.dataset.filled === "1" && !noFilters) return;
+  if (noFilters) {
+    const brands = [...new Set(products.map((p) => p.brand))].sort();
+    sel.innerHTML = `<option value="">All brands</option>` + brands.map((b) => `<option value="${b}">${b}</option>`).join("");
+    sel.dataset.filled = "1";
+  }
 }
 
 function renderProducts(products) {
@@ -307,6 +325,17 @@ function openProduct(id) {
           </div>`
         )
         .join("")}
+      <div class="cust-reviews" id="custReviews"><div class="muted-small">Loading customer reviews…</div></div>
+      <form class="review-form" id="reviewForm">
+        <div class="rf-title">✍️ Write a review</div>
+        <div class="rf-stars" id="rfStars">
+          ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rf-star" data-star="${n}">★</button>`).join("")}
+        </div>
+        ${state.user ? "" : `<input type="text" id="rfName" class="rf-input" placeholder="Your name" maxlength="60" />`}
+        <textarea id="rfText" class="rf-input" rows="2" maxlength="400" placeholder="Share your experience with this product…"></textarea>
+        <button type="submit" class="secondary-btn">Post review</button>
+        <div class="rf-msg" id="rfMsg"></div>
+      </form>
     </div>`;
   const wished = state.wishlist.includes(p.id);
   const recommend = state.products.filter((x) => x.category === p.category && x.id !== p.id).slice(0, 3);
@@ -377,7 +406,86 @@ function openProduct(id) {
   const trBtn = $("#testRideBtn");
   if (trBtn) trBtn.addEventListener("click", () => openCheckout("TEST_RIDE"));
 
+  wireReviewForm(p.id);
+  loadProductReviews(p.id);
+
   $("#productModal").hidden = false;
+}
+
+/* ---------- customer reviews ---------- */
+let reviewRating = 5;
+function wireReviewForm(productId) {
+  reviewRating = 5;
+  const starWrap = $("#rfStars");
+  if (starWrap) {
+    const paint = () => starWrap.querySelectorAll(".rf-star").forEach((s) => s.classList.toggle("is-on", Number(s.dataset.star) <= reviewRating));
+    paint();
+    starWrap.querySelectorAll(".rf-star").forEach((s) =>
+      s.addEventListener("click", () => {
+        reviewRating = Number(s.dataset.star);
+        paint();
+      })
+    );
+  }
+  const form = $("#reviewForm");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = ($("#rfText").value || "").trim();
+    const nameEl = $("#rfName");
+    const msg = $("#rfMsg");
+    if (!text) {
+      msg.textContent = "Please write a short review.";
+      msg.className = "rf-msg is-err";
+      return;
+    }
+    try {
+      await api(`/api/products/${productId}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: reviewRating, text, name: nameEl ? nameEl.value : "" }),
+      });
+      $("#rfText").value = "";
+      if (nameEl) nameEl.value = "";
+      reviewRating = 5;
+      msg.textContent = "Thanks! Your review is posted.";
+      msg.className = "rf-msg is-ok";
+      loadProductReviews(productId);
+      toast("Review posted 🎉");
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = "rf-msg is-err";
+    }
+  });
+}
+
+async function loadProductReviews(productId) {
+  const box = $("#custReviews");
+  if (!box) return;
+  try {
+    const { reviews, count, avg } = await api(`/api/products/${productId}/reviews`);
+    if (!count) {
+      box.innerHTML = `<div class="muted-small">Be the first to review this product!</div>`;
+      return;
+    }
+    box.innerHTML =
+      `<div class="cust-rev-head">🗣️ ${count} customer ${count === 1 ? "review" : "reviews"} · avg ★ ${avg}</div>` +
+      reviews
+        .map(
+          (r) => `<div class="pm-review">
+            <div class="pm-rev-top"><span class="pm-rev-name">${escapeHtml(r.name)}</span><span class="pm-rev-stars">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</span></div>
+            <div class="pm-rev-text">${escapeHtml(r.text)}</div>
+            <div class="muted-small">${new Date(r.createdAt).toLocaleDateString("en-IN")}</div>
+          </div>`
+        )
+        .join("");
+  } catch (_e) {
+    box.innerHTML = "";
+  }
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 /* ---------- checkout ---------- */
@@ -612,9 +720,31 @@ function renderOrderList(orders) {
             ${isRide ? "" : `<span>Delivery: ${o.etaDays} days</span>`}
             <span>Placed: ${new Date(o.createdAt).toLocaleString("en-IN")}</span>
           </div>
+          ${trackingHtml(o.tracking)}
         </div>`;
     })
     .join("");
+}
+
+function trackingHtml(t) {
+  if (!t || !t.stages) return "";
+  const eta = t.delivered
+    ? "Completed 🎉"
+    : `Est. ${new Date(t.etaDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`;
+  return `
+    <div class="track">
+      <div class="track-head"><span>📦 Order tracking</span><span class="track-eta">${eta}</span></div>
+      <div class="track-line">
+        ${t.stages
+          .map(
+            (s) => `<div class="track-step ${s.done ? "done" : ""} ${s.current ? "current" : ""}">
+              <div class="track-dot">${s.done ? "✓" : s.icon}</div>
+              <div class="track-label">${s.label}</div>
+            </div>`
+          )
+          .join("")}
+      </div>
+    </div>`;
 }
 
 /* ---------- accounts / auth ---------- */
@@ -1109,6 +1239,30 @@ function bindEvents() {
   });
   $("#sortSelect").addEventListener("change", (e) => {
     state.filters.sort = e.target.value;
+    loadProducts();
+  });
+  $("#brandFilter").addEventListener("change", (e) => {
+    state.filters.brand = e.target.value;
+    loadProducts();
+  });
+  $("#priceFilter").addEventListener("change", (e) => {
+    const [min, max] = (e.target.value || "0-0").split("-").map(Number);
+    state.filters.minPrice = min || 0;
+    state.filters.maxPrice = max || 0;
+    loadProducts();
+  });
+  $("#ratingFilter").addEventListener("change", (e) => {
+    state.filters.minRating = Number(e.target.value) || 0;
+    loadProducts();
+  });
+  $("#clearFilters").addEventListener("click", () => {
+    state.filters.brand = "";
+    state.filters.minPrice = 0;
+    state.filters.maxPrice = 0;
+    state.filters.minRating = 0;
+    $("#brandFilter").value = "";
+    $("#priceFilter").value = "";
+    $("#ratingFilter").value = "";
     loadProducts();
   });
   $("#nearStoreBtn").addEventListener("click", findNearestStore);
