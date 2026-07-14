@@ -382,6 +382,45 @@ function nearestStore(lat, lon) {
   )[0];
 }
 
+/* ---------- order tracking (simulated progress by elapsed time) ---------- */
+function buildTracking(order) {
+  if (!order) return null;
+  const isRide = order.kind === "TEST_RIDE";
+  const stages = isRide
+    ? [
+        { key: "BOOKED", label: "Booking confirmed", icon: "📅" },
+        { key: "REMINDER", label: "Reminder sent", icon: "🔔" },
+        { key: "READY", label: "Vehicle ready at store", icon: "🛵" },
+        { key: "DONE", label: "Test ride complete", icon: "✅" },
+      ]
+    : [
+        { key: "CONFIRMED", label: "Order confirmed", icon: "🧾" },
+        { key: "PACKED", label: "Packed & quality-checked", icon: "📦" },
+        { key: "SHIPPED", label: "Shipped from store", icon: "🚚" },
+        { key: "OUT", label: "Out for delivery", icon: "🛵" },
+        { key: "DELIVERED", label: "Delivered", icon: "🎉" },
+      ];
+  const created = new Date(order.createdAt || Date.now()).getTime();
+  const etaDays = Number(order.etaDays) || (isRide ? 2 : 5);
+  const totalMs = Math.max(1, etaDays) * 24 * 60 * 60 * 1000;
+  const elapsed = Date.now() - created;
+  const frac = Math.max(0, Math.min(1, elapsed / totalMs));
+  // Map progress fraction onto the stage list (always at least stage 0 done).
+  let currentIndex = Math.floor(frac * stages.length);
+  if (currentIndex >= stages.length) currentIndex = stages.length - 1;
+  const eta = new Date(created + totalMs);
+  return {
+    stages: stages.map((s, i) => ({
+      ...s,
+      done: i < currentIndex || frac >= 1,
+      current: i === currentIndex && frac < 1,
+    })),
+    currentIndex,
+    delivered: frac >= 1,
+    etaDate: eta.toISOString(),
+  };
+}
+
 /* ---------- accounts / auth ---------- */
 function hashPassword(password, salt) {
   const useSalt = salt || crypto.randomBytes(16).toString("hex");
@@ -572,13 +611,17 @@ const server = http.createServer(async (req, res) => {
       const list = all.filter(
         (o) => o.userId === user.id || (o.customer && o.customer.phone && o.customer.phone === user.phone)
       );
-      return sendJson(res, 200, { orders: list.slice(-50).reverse() });
+      return sendJson(res, 200, { orders: list.slice(-50).reverse().map((o) => ({ ...o, tracking: buildTracking(o) })) });
     }
 
     if (pathname === "/api/products") {
       const category = query.get("category");
       const q = cleanText(query.get("q") || "", 60).toLowerCase();
       const sort = query.get("sort") || "popular";
+      const brand = cleanText(query.get("brand") || "", 40).toLowerCase();
+      const minPrice = Number(query.get("minPrice"));
+      const maxPrice = Number(query.get("maxPrice"));
+      const minRating = Number(query.get("minRating"));
       let list = PRODUCTS.map((p) => ({ ...p }));
       if (category && category !== "all") list = list.filter((p) => p.category === category);
       if (q) {
@@ -589,11 +632,50 @@ const server = http.createServer(async (req, res) => {
             p.desc.toLowerCase().includes(q)
         );
       }
+      if (brand) list = list.filter((p) => p.brand.toLowerCase() === brand);
+      if (!Number.isNaN(minPrice) && minPrice > 0) list = list.filter((p) => p.price >= minPrice);
+      if (!Number.isNaN(maxPrice) && maxPrice > 0) list = list.filter((p) => p.price <= maxPrice);
+      if (!Number.isNaN(minRating) && minRating > 0) list = list.filter((p) => p.rating >= minRating);
       if (sort === "price-low") list.sort((a, b) => a.price - b.price);
       else if (sort === "price-high") list.sort((a, b) => b.price - a.price);
       else if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
       else list.sort((a, b) => b.reviews - a.reviews);
       return sendJson(res, 200, { products: list, count: list.length });
+    }
+
+    // ---- Product reviews (customer-written) ----
+    if (/^\/api\/products\/[^/]+\/reviews$/.test(pathname) && req.method === "GET") {
+      const id = decodeURIComponent(pathname.split("/")[3] || "");
+      const product = PRODUCTS.find((p) => p.id === id);
+      if (!product) return sendJson(res, 404, { error: "Product not found" });
+      const all = await store.getReviews();
+      const list = all.filter((r) => r.productId === id).slice(-50).reverse();
+      const count = list.length;
+      const avg = count ? Math.round((list.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : 0;
+      return sendJson(res, 200, { reviews: list, count, avg });
+    }
+
+    if (/^\/api\/products\/[^/]+\/reviews$/.test(pathname) && req.method === "POST") {
+      const id = decodeURIComponent(pathname.split("/")[3] || "");
+      const product = PRODUCTS.find((p) => p.id === id);
+      if (!product) return sendJson(res, 404, { error: "Product not found" });
+      const body = await readBody(req);
+      const sessionUser = await getSessionUser(req);
+      const name = cleanText(sessionUser ? sessionUser.name : body.name, 60) || "Verified buyer";
+      const rating = clampNumber(body.rating, 1, 5, 5);
+      const text = cleanText(body.text, 400);
+      if (!text) return sendJson(res, 400, { error: "Please write a short review." });
+      const review = {
+        id: genId("REV"),
+        productId: id,
+        name,
+        rating,
+        text,
+        userId: sessionUser ? sessionUser.id : null,
+        createdAt: new Date().toISOString(),
+      };
+      await store.saveReview(review);
+      return sendJson(res, 201, review);
     }
 
     if (pathname.startsWith("/api/products/") && req.method === "GET") {
@@ -731,12 +813,12 @@ const server = http.createServer(async (req, res) => {
       if (id) {
         const found = await store.getOrder(id);
         if (!found) return sendJson(res, 404, { error: "Order not found" });
-        return sendJson(res, 200, found);
+        return sendJson(res, 200, { ...found, tracking: buildTracking(found) });
       }
       const phone = cleanText(query.get("phone") || "", 20);
       const all = await store.getOrders();
       const list = phone ? all.filter((o) => o.customer && o.customer.phone === phone) : all;
-      return sendJson(res, 200, { orders: list.slice(-50).reverse() });
+      return sendJson(res, 200, { orders: list.slice(-50).reverse().map((o) => ({ ...o, tracking: buildTracking(o) })) });
     }
 
     // ---- Admin ----
