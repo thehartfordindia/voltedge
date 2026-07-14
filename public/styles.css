@@ -449,6 +449,9 @@ textarea.rf-input { resize: vertical; }
   .filter-row { gap: 6px; }
   .filter-select { flex: 1; min-width: 40%; }
 }
+
+.admin-link { color: var(--ink-soft); font-size: 12.5px; text-decoration: none; opacity: 0.7; }
+.admin-link:hover { opacity: 1; color: var(--primary-dark); }
 .cart-meta { font-size: 12px; color: var(--ink-soft); }
 .cart-price { font-size: 13px; color: var(--primary-dark); font-weight: 700; }
 .cart-qty { display: flex; align-items: center; gap: 8px; }
