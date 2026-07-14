@@ -828,8 +828,54 @@ const server = http.createServer(async (req, res) => {
       }
       if (pathname === "/api/admin/orders") {
         const all = await store.getOrders();
-        return sendJson(res, 200, { orders: all.slice(-200).reverse() });
+        return sendJson(res, 200, { orders: all.slice(-200).reverse().map((o) => ({ ...o, tracking: buildTracking(o) })) });
       }
+      if (pathname === "/api/admin/stats") {
+        const all = await store.getOrders();
+        const reviews = await store.getReviews();
+        const users = await store.getUsers();
+        const purchases = all.filter((o) => o.kind !== "TEST_RIDE");
+        const revenue = purchases.reduce((s, o) => s + (Number(o.amount) || 0), 0);
+        const unitsSold = purchases.reduce((s, o) => s + (o.itemCount || o.qty || 1), 0);
+        const byStatus = {};
+        for (const o of all) byStatus[o.status] = (byStatus[o.status] || 0) + 1;
+        const byCategory = {};
+        for (const o of purchases) {
+          const cat = (o.product && o.product.category) || "other";
+          byCategory[cat] = (byCategory[cat] || 0) + (o.itemCount || o.qty || 1);
+        }
+        const rides = all.filter((o) => o.kind === "TEST_RIDE").length;
+        return sendJson(res, 200, {
+          orders: all.length,
+          purchases: purchases.length,
+          testRides: rides,
+          revenue,
+          unitsSold,
+          avgOrder: purchases.length ? Math.round(revenue / purchases.length) : 0,
+          customers: users.length,
+          reviews: reviews.length,
+          byStatus,
+          byCategory,
+          products: PRODUCTS.length,
+        });
+      }
+      if (pathname === "/api/admin/reviews") {
+        const reviews = await store.getReviews();
+        const withProduct = reviews.slice(-200).reverse().map((r) => {
+          const p = PRODUCTS.find((x) => x.id === r.productId);
+          return { ...r, productName: p ? p.name : r.productId };
+        });
+        return sendJson(res, 200, { reviews: withProduct });
+      }
+      if (/^\/api\/admin\/reviews\/[^/]+$/.test(pathname) && req.method === "DELETE") {
+        const id = decodeURIComponent(pathname.split("/")[4] || "");
+        await store.deleteReview(id);
+        return sendJson(res, 200, { ok: true });
+      }
+      if (pathname === "/api/admin/products") {
+        return sendJson(res, 200, { products: PRODUCTS.map((p) => ({ id: p.id, name: p.name, category: p.category, brand: p.brand, price: p.price, stock: p.stock, rating: p.rating })) });
+      }
+      return sendJson(res, 404, { error: "Unknown admin route" });
     }
 
     // ---- Static ----
