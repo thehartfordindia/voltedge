@@ -222,6 +222,17 @@ async function saveReview(review) {
   writeJsonFile(REVIEWS_FILE, arr);
 }
 
+async function deleteReview(id) {
+  await ensureReady();
+  if (usingDb()) {
+    await pool.query("DELETE FROM reviews WHERE id = $1", [id]);
+    return;
+  }
+  const existing = readJsonFile(REVIEWS_FILE, []);
+  const kept = (Array.isArray(existing) ? existing : []).filter((r) => r.id !== id);
+  writeJsonFile(REVIEWS_FILE, kept);
+}
+
 module.exports = {
   mode,
   ensureReady,
@@ -235,4 +246,5 @@ module.exports = {
   deleteSession,
   getReviews,
   saveReview,
+  deleteReview,
 };
