@@ -6,7 +6,7 @@
   <title>VoltEdge — Electric Bikes, E-Cycles &amp; Batteries</title>
   <meta name="description" content="Shop electric bikes, e-cycles, geared cycles and EV batteries. Book a free test ride and get home delivery from your nearest VoltEdge store." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
   <header class="site-header">
@@ -17,15 +17,23 @@
       </a>
       <nav class="top-nav" id="topNav">
         <button class="nav-link is-active" data-view="shop">Shop</button>
+        <button class="nav-link" data-view="offers">Offers</button>
+        <button class="nav-link" data-view="about">How we work</button>
         <button class="nav-link" data-view="orders">My Orders</button>
       </nav>
       <div class="header-actions">
         <button class="ghost-btn" id="nearStoreBtn" title="Find nearest store">📍 Nearest store</button>
+        <button class="ghost-btn icon-badge-btn" id="wishlistBtn" title="Wishlist">❤️<span class="count-badge" id="wishCount" hidden>0</span></button>
+        <button class="ghost-btn icon-badge-btn" id="cartBtn" title="Cart">🛒<span class="count-badge" id="cartCount" hidden>0</span></button>
+        <button class="ghost-btn" id="accountBtn" title="Login or register">👤 Login</button>
         <button class="ghost-btn icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
       </div>
     </div>
     <div class="store-strip" id="storeStrip" hidden>
       <div class="wrap" id="storeStripText"></div>
+    </div>
+    <div class="offer-strip" id="offerStrip" hidden>
+      <div class="wrap" id="offerStripText"></div>
     </div>
   </header>
 
@@ -35,14 +43,16 @@
       <div class="hero">
         <div class="hero-copy">
           <h1>Ride electric. <span class="hl">Ride VoltEdge.</span></h1>
-          <p>Electric bikes, e-cycles, geared cycles and certified EV batteries — with free test rides and same-week home delivery across Hyderabad.</p>
+          <p>Electric bikes, scooters, autos, solar cycles, batteries and kids' toys — with free test rides and same-week home delivery across Hyderabad.</p>
           <div class="hero-cta">
             <button class="primary-btn" id="heroShopBtn">Explore range</button>
             <span class="hero-note">🔋 AIS-156 certified batteries · 🛠️ 3-year warranty</span>
           </div>
         </div>
-        <div class="hero-art" aria-hidden="true">🏍️🚲🔋</div>
+        <div class="hero-art" id="heroArt" aria-hidden="true"></div>
       </div>
+
+      <div class="trust-strip" id="trustStrip"></div>
 
       <div class="controls">
         <div class="cat-chips" id="catChips"></div>
@@ -71,7 +81,55 @@
       </form>
       <div class="order-list" id="orderList"></div>
     </section>
+
+    <!-- OFFERS VIEW -->
+    <section class="view" data-view-panel="offers" hidden>
+      <h2 class="section-title">🎉 Festival &amp; seasonal offers</h2>
+      <p class="muted">Grab a coupon code and apply it at checkout. Also available on Amazon, Flipkart &amp; Meesho.</p>
+      <div class="offer-grid" id="offerGrid"></div>
+      <div class="market-note" id="marketNote"></div>
+    </section>
+
+    <!-- ABOUT / SUPPLY CHAIN VIEW -->
+    <section class="view" data-view-panel="about" hidden>
+      <h2 class="section-title" id="aboutHeadline">How VoltEdge works</h2>
+      <p class="muted" id="aboutIntro"></p>
+      <div class="pillar-grid" id="pillarGrid"></div>
+      <div class="store-block">
+        <h3>Our experience stores</h3>
+        <div class="store-cards" id="aboutStores"></div>
+      </div>
+    </section>
+
+    <!-- WISHLIST VIEW -->
+    <section class="view" data-view-panel="wishlist" hidden>
+      <h2 class="section-title">❤️ Your wishlist</h2>
+      <p class="muted">Saved products you love. Add them to cart whenever you're ready.</p>
+      <div class="product-grid" id="wishlistGrid"></div>
+    </section>
   </main>
+
+  <!-- CART DRAWER -->
+  <div class="drawer" id="cartDrawer" hidden>
+    <div class="drawer-backdrop" data-close></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-label="Shopping cart">
+      <div class="drawer-head">
+        <h3>🛒 Your cart</h3>
+        <button class="modal-close" data-close aria-label="Close">✕</button>
+      </div>
+      <div class="drawer-body" id="cartBody"></div>
+      <div class="drawer-foot" id="cartFoot"></div>
+    </aside>
+  </div>
+
+  <!-- AUTH MODAL -->
+  <div class="modal" id="authModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close aria-label="Close">✕</button>
+      <div class="modal-body" id="authBody"></div>
+    </div>
+  </div>
 
   <!-- PRODUCT MODAL -->
   <div class="modal" id="productModal" hidden>
@@ -94,11 +152,29 @@
   <div class="toast" id="toast" hidden></div>
 
   <footer class="site-footer">
-    <div class="wrap">
+    <div class="wrap footer-grid">
+      <div class="footer-brand">
+        <div class="brand"><span class="brand-mark">⚡</span><span class="brand-text">Volt<strong>Edge</strong></span></div>
+        <p class="footer-tag">Electric mobility for everyone — bikes, scooters, autos, solar cycles, batteries &amp; kids' toys.</p>
+        <div class="footer-social">
+          <span title="Facebook">📘</span><span title="Instagram">📷</span><span title="YouTube">▶️</span><span title="X">✖️</span>
+        </div>
+      </div>
+      <div class="footer-news">
+        <h4>Get exclusive offers</h4>
+        <p>Subscribe for festival deals, new launches and coupon codes.</p>
+        <form class="news-form" id="newsForm">
+          <input type="email" id="newsEmail" placeholder="you@example.com" required />
+          <button class="primary-btn" type="submit">Subscribe</button>
+        </form>
+        <div class="news-msg" id="newsMsg"></div>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
       <p>VoltEdge — demo store. Orders and payments are simulated for showcase purposes.</p>
     </div>
   </footer>
 
-  <script src="app.js?v=1"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
