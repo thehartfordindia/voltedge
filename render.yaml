@@ -1,6 +1,10 @@
 # Render Blueprint for VoltEdge EV Store
-# Deploys BOTH the web app and a free PostgreSQL database, wired together
-# automatically. In the Render dashboard: New + -> Blueprint -> pick this repo.
+# Deploys the web app. Storage is durable when DATABASE_URL is set (any
+# PostgreSQL, e.g. a free Neon database); otherwise it uses local JSON files.
+#
+# NOTE: Render's free plan allows only ONE free database per account. If you
+# already have one, do NOT let this Blueprint create another. Instead set
+# DATABASE_URL in the service's Environment tab (Neon free Postgres works great).
 services:
   - type: web
     name: voltedge
@@ -11,16 +15,6 @@ services:
     envVars:
       - key: ADMIN_SECRET
         generateValue: true
-      # Durable storage: connection string is injected automatically from the
-      # free PostgreSQL database defined below. Users, orders, reviews and
-      # sessions are then saved permanently (survive restarts/redeploys).
-      - key: DATABASE_URL
-        fromDatabase:
-          name: voltedge-db
-          property: connectionString
-
-databases:
-  - name: voltedge-db
-    plan: free
-    databaseName: voltedge
-    user: voltedge
+      # For permanent storage, add DATABASE_URL in the dashboard (Environment
+      # tab) using a free Neon PostgreSQL connection string. The app creates its
+      # tables automatically and then survives restarts/redeploys.
