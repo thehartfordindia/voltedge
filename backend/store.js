@@ -13,6 +13,7 @@ const DATA_DIR = path.join(__dirname, "data");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
+const REVIEWS_FILE = path.join(DATA_DIR, "reviews.json");
 
 const DATABASE_URL = process.env.DATABASE_URL || "";
 let pool = null;
@@ -71,11 +72,19 @@ async function ensureReady() {
           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS reviews (
+          id TEXT PRIMARY KEY,
+          data JSONB NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+      `);
     } else {
       ensureDataDir();
       if (!fs.existsSync(ORDERS_FILE)) writeJsonFile(ORDERS_FILE, []);
       if (!fs.existsSync(USERS_FILE)) writeJsonFile(USERS_FILE, []);
       if (!fs.existsSync(SESSIONS_FILE)) writeJsonFile(SESSIONS_FILE, []);
+      if (!fs.existsSync(REVIEWS_FILE)) writeJsonFile(REVIEWS_FILE, []);
     }
   })();
   return ready;
@@ -185,6 +194,34 @@ async function deleteSession(token) {
   writeJsonFile(SESSIONS_FILE, kept);
 }
 
+/* ---------- reviews (customer-written) ---------- */
+async function getReviews() {
+  await ensureReady();
+  if (usingDb()) {
+    const res = await pool.query("SELECT data FROM reviews ORDER BY created_at ASC");
+    return res.rows.map((r) => r.data);
+  }
+  const list = readJsonFile(REVIEWS_FILE, []);
+  return Array.isArray(list) ? list : [];
+}
+
+async function saveReview(review) {
+  await ensureReady();
+  if (usingDb()) {
+    await pool.query(
+      "INSERT INTO reviews (id, data, created_at) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data",
+      [review.id, review, review.createdAt || new Date().toISOString()]
+    );
+    return;
+  }
+  const list = readJsonFile(REVIEWS_FILE, []);
+  const arr = Array.isArray(list) ? list : [];
+  const idx = arr.findIndex((r) => r.id === review.id);
+  if (idx >= 0) arr[idx] = review;
+  else arr.push(review);
+  writeJsonFile(REVIEWS_FILE, arr);
+}
+
 module.exports = {
   mode,
   ensureReady,
@@ -196,4 +233,6 @@ module.exports = {
   getSessions,
   saveSessions,
   deleteSession,
+  getReviews,
+  saveReview,
 };
