@@ -1,4 +1,6 @@
 # Render Blueprint for VoltEdge EV Store
+# Deploys BOTH the web app and a free PostgreSQL database, wired together
+# automatically. In the Render dashboard: New + -> Blueprint -> pick this repo.
 services:
   - type: web
     name: voltedge
@@ -9,16 +11,16 @@ services:
     envVars:
       - key: ADMIN_SECRET
         generateValue: true
-      # Durable order storage (optional). To enable, create a free Render
-      # PostgreSQL DB and add its Internal URL as DATABASE_URL (dashboard or below).
-      # - key: DATABASE_URL
-      #   fromDatabase:
-      #     name: voltedge-db
-      #     property: connectionString
-      # - key: WEBSITE_URL
+      # Durable storage: connection string is injected automatically from the
+      # free PostgreSQL database defined below. Users, orders, reviews and
+      # sessions are then saved permanently (survive restarts/redeploys).
+      - key: DATABASE_URL
+        fromDatabase:
+          name: voltedge-db
+          property: connectionString
 
-# databases:
-#   - name: voltedge-db
-#     plan: free
-#     databaseName: voltedge
-#     user: voltedge
+databases:
+  - name: voltedge-db
+    plan: free
+    databaseName: voltedge
+    user: voltedge
