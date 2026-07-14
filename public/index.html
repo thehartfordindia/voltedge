@@ -6,7 +6,7 @@
   <title>VoltEdge — Electric Bikes, E-Cycles &amp; Batteries</title>
   <meta name="description" content="Shop electric bikes, e-cycles, geared cycles and EV batteries. Book a free test ride and get home delivery from your nearest VoltEdge store." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body>
   <header class="site-header">
@@ -64,6 +64,26 @@
             <option value="price-high">Price: high to low</option>
             <option value="rating">Top rated</option>
           </select>
+        </div>
+        <div class="filter-row" id="filterRow">
+          <select id="brandFilter" class="filter-select" title="Brand">
+            <option value="">All brands</option>
+          </select>
+          <select id="priceFilter" class="filter-select" title="Price">
+            <option value="">Any price</option>
+            <option value="0-5000">Under ₹5,000</option>
+            <option value="5000-20000">₹5,000 – ₹20,000</option>
+            <option value="20000-60000">₹20,000 – ₹60,000</option>
+            <option value="60000-100000">₹60,000 – ₹1,00,000</option>
+            <option value="100000-0">Above ₹1,00,000</option>
+          </select>
+          <select id="ratingFilter" class="filter-select" title="Rating">
+            <option value="">Any rating</option>
+            <option value="4.5">★ 4.5 &amp; up</option>
+            <option value="4">★ 4.0 &amp; up</option>
+            <option value="3.5">★ 3.5 &amp; up</option>
+          </select>
+          <button class="filter-clear" id="clearFilters" type="button">Clear</button>
         </div>
       </div>
 
@@ -175,6 +195,6 @@
     </div>
   </footer>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
