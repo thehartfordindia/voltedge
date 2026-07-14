@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoltEdge — Admin Dashboard</title>
+  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="admin.css?v=5" />
+</head>
+<body class="admin-body">
+  <!-- Login gate -->
+  <div class="admin-login" id="loginGate">
+    <div class="admin-login-card">
+      <div class="admin-logo">⚡ VoltEdge</div>
+      <h1>Admin Dashboard</h1>
+      <p>Enter the admin secret to manage your store.</p>
+      <form id="loginForm">
+        <input type="password" id="secretInput" placeholder="Admin secret" autocomplete="off" required />
+        <button type="submit" class="primary-btn">Unlock dashboard</button>
+        <div class="login-msg" id="loginMsg"></div>
+      </form>
+      <a class="back-link" href="/">← Back to store</a>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="admin-shell" id="dashboard" hidden>
+    <header class="admin-header">
+      <div class="admin-brand">⚡ VoltEdge <span>Admin</span></div>
+      <nav class="admin-nav" id="adminNav">
+        <button class="admin-tab is-active" data-tab="overview">📊 Overview</button>
+        <button class="admin-tab" data-tab="orders">📦 Orders</button>
+        <button class="admin-tab" data-tab="reviews">⭐ Reviews</button>
+        <button class="admin-tab" data-tab="products">🛒 Products</button>
+      </nav>
+      <div class="admin-actions">
+        <a class="ghost-btn" href="/" target="_blank">View store ↗</a>
+        <button class="ghost-btn" id="refreshBtn">↻ Refresh</button>
+        <button class="ghost-btn" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <!-- Overview -->
+      <section class="admin-panel" id="tab-overview">
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="chart-row">
+          <div class="chart-card">
+            <h3>Orders by status</h3>
+            <div class="bar-list" id="statusBars"></div>
+          </div>
+          <div class="chart-card">
+            <h3>Units sold by category</h3>
+            <div class="bar-list" id="categoryBars"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders -->
+      <section class="admin-panel" id="tab-orders" hidden>
+        <div class="panel-head">
+          <h2>All orders</h2>
+          <input type="search" id="orderSearch" class="admin-search" placeholder="Search by name, phone, or order ID…" />
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table" id="ordersTable">
+            <thead>
+              <tr><th>Order ID</th><th>Product</th><th>Customer</th><th>Type</th><th>Amount</th><th>Status</th><th>Placed</th></tr>
+            </thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Reviews -->
+      <section class="admin-panel" id="tab-reviews" hidden>
+        <div class="panel-head"><h2>Customer reviews</h2></div>
+        <div class="review-mod-list" id="reviewModList"></div>
+      </section>
+
+      <!-- Products -->
+      <section class="admin-panel" id="tab-products" hidden>
+        <div class="panel-head"><h2>Product catalog</h2></div>
+        <div class="table-wrap">
+          <table class="admin-table" id="productsTable">
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Category</th><th>Brand</th><th>Price</th><th>Stock</th><th>Rating</th></tr>
+            </thead>
+            <tbody id="productsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="admin.js?v=5"></script>
+</body>
+</html>
